@@ -1,7 +1,2 @@
-bin
-obj
-.github
-.idea
-.vs
-.vscode
-
+ForzaDualSense/bin/*
+ForzaDualSense/obj/*
