@@ -12,9 +12,10 @@ using System.Globalization;
 
 namespace ForzaDSX
 {
+
     class Program
     {
-        public const String VERSION = "0.4.1";
+        public const String VERSION = "0.4.2D";
         static Settings settings = new Settings();
         static bool verbose = false;
         static bool logToCsv = false;
@@ -49,12 +50,12 @@ namespace ForzaDSX
 		public static readonly int[] ColorClassS2 = { 75, 88, 229 };
 
 		public static readonly int[] ColorClassX = { 105, 182, 72 };
-        
 
-		//This sends the data to DSX based on the input parsed data from Forza.
-		//See DataPacket.cs for more details about what forza parameters can be accessed.
-		//See the Enums at the bottom of this file for details about commands that can be sent to DualSenseX
-		//Also see the Test Function below to see examples about those commands
+
+        //This sends the data to DSX based on the input parsed data from Forza.
+        //See DataPacket.cs for more details about what forza parameters can be accessed.
+        //See the Enums at the bottom of this file for details about commands that can be sent to DualSenseX
+        //Also see the Test Function below to see examples about those commands
 		static void SendData(DataPacket data, CsvWriter csv)
         {
             Console.Title = "ForzaDSX version: " + VERSION;
