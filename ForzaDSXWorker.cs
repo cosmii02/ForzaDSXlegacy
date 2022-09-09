@@ -217,7 +217,7 @@ namespace ForzaDSX
 					}
 					else
 					{
-						p.instructions[2].parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.CustomTriggerValue, CustomTriggerValueMode.VibrateResistance, filteredFreq, filteredResistance, userInterface.CurrentSettings.BRAKE_VIBRATION_START, 0, 0, 0, 0 };
+						p.instructions[2].parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.CustomTriggerValue, CustomTriggerValueMode.VibrateResistance, filteredFreq, filteredResistance, userInterface.CurrentSettings.THROTTLE_VIBRATION_MODE_START, 0, 0, 0, 0 };
 					}
 					if (userInterface.CurrentSettings.Verbose)
 					{
