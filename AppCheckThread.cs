@@ -40,12 +40,12 @@ namespace ForzaDSX
 
 	internal class AppCheckThread
 	{
-		readonly ForzaDSXSettings settings;
+		readonly ForzaDSX.Properties.Settings settings;
 		readonly IProgress<AppCheckReportStruct> progressReporter;
 
 		protected bool bRunning = false;
 
-		public AppCheckThread(ref ForzaDSXSettings currentSettings, IProgress<AppCheckReportStruct> progressReporter)
+		public AppCheckThread(ref ForzaDSX.Properties.Settings currentSettings, IProgress<AppCheckReportStruct> progressReporter)
 		{
 			settings = currentSettings;
 			this.progressReporter = progressReporter;

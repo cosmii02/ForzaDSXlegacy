@@ -53,7 +53,7 @@ namespace ForzaDSX
 			public string message = string.Empty;
 		}
 
-		ForzaDSXSettings settings;
+		ForzaDSX.Properties.Settings settings;
 		IProgress<ForzaDSXReportStruct> progressReporter;
 
 		int lastThrottleResistance = 1;
@@ -86,16 +86,15 @@ namespace ForzaDSX
 		public static readonly int[] ColorClassX = { 105, 182, 72 };
 
 
-		public ForzaDSXWorker(ForzaDSXSettings currentSettings, IProgress<ForzaDSXReportStruct> progressReporter)
+		public ForzaDSXWorker(ForzaDSX.Properties.Settings currentSettings, IProgress<ForzaDSXReportStruct> progressReporter)
 		{
-			settings = new ForzaDSXSettings();
-			settings.Copy(currentSettings);
+			settings = currentSettings;
 			this.progressReporter = progressReporter;
 		}
 
-		public void SetSettings(ForzaDSXSettings currentSettings)
+		public void SetSettings(ForzaDSX.Properties.Settings currentSettings)
 		{
-			settings.Copy(currentSettings);
+			settings = currentSettings;
 		}
 
 		//This sends the data to DSX based on the input parsed data from Forza.

@@ -8,6 +8,9 @@
 	  <!--<SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>-->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	  <!--<PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>-->
+	  <PublishSingleFile>true</PublishSingleFile>
+	  <SelfContained>true</SelfContained>
+	  <PublishReadyToRun>true</PublishReadyToRun>
 	<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platforms>AnyCPU</Platforms>
     <PackageReadmeFile>Readme.md</PackageReadmeFile>
@@ -22,7 +25,7 @@
 <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 	<PlatformTarget>AnyCPU</PlatformTarget>
 	<DebugSymbols>true</DebugSymbols>
-	<DebugType>full</DebugType>
+	<DebugType>none</DebugType>
 	<Optimize>false</Optimize>
 	<OutputPath>bin\Debug\</OutputPath>
 	<DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -31,18 +34,18 @@
 </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 	  <PlatformTarget>AnyCPU</PlatformTarget>
-	  <DebugType>pdbonly</DebugType>
+	  <DebugType>none</DebugType>
 	  <Optimize>true</Optimize>
 	  <OutputPath>bin\Release\</OutputPath>
 	  <DefineConstants>TRACE</DefineConstants>
 	  <ErrorReport>prompt</ErrorReport>
 	  <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-<ItemGroup>
+<!--<ItemGroup>
     <Content Include="appsettings.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
+  </ItemGroup>-->
 
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="27.2.1" />

@@ -1,10 +1,7 @@
 ﻿using ForzaDSX.Properties;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json.Linq;
 using System;
-using System.ComponentModel;
+//using System.Configuration;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using static ForzaDSX.ForzaDSXWorker;
 
@@ -13,9 +10,9 @@ namespace ForzaDSX
 	public partial class UI : Form
     {
         protected ForzaDSXWorker forzaDSXWorker;
-		protected ForzaDSXSettings currentSettings;
-		protected IConfiguration config;
-		public ForzaDSXSettings CurrentSettings { get => currentSettings; set => currentSettings = value; }
+		protected ForzaDSX.Properties.Settings currentSettings;
+		//protected Configuration config;
+		public ForzaDSX.Properties.Settings CurrentSettings { get => currentSettings; set => currentSettings = value; }
 
 		bool bForzaConnected = false;
 		bool bDsxConnected = false;
@@ -219,15 +216,16 @@ namespace ForzaDSX
 
 		public void LoadSettings()
 		{
-			// Build a config object, using env vars and JSON providers.
-			config = new ConfigurationBuilder()
-				.AddIniFile("appsettings.ini")
-				.Build();
+			//// Build a config object, using env vars and JSON providers.
+			//config = new ConfigurationBuilder()
+			//	.AddIniFile("appsettings.ini")
+			//	.Build();
 
 			try
 			{
+
 				// Get values from the config given their key and their target type.
-				currentSettings = config.Get<ForzaDSXSettings>();
+				currentSettings = Properties.Settings.Default;//.Get<ForzaDSXSettings>();
 
 				currentSettings.LEFT_TRIGGER_EFFECT_INTENSITY = Math.Clamp(currentSettings.LEFT_TRIGGER_EFFECT_INTENSITY, 0.0f, 1.0f);
 				currentSettings.RIGHT_TRIGGER_EFFECT_INTENSITY = Math.Clamp(currentSettings.RIGHT_TRIGGER_EFFECT_INTENSITY, 0.0f, 1.0f);
@@ -757,7 +755,7 @@ namespace ForzaDSX
 
 			if (forzaDSXWorker != null)
 			{
-				
+				CurrentSettings.Save();
 
 				forzaDSXWorker.SetSettings(CurrentSettings);
 
@@ -771,6 +769,8 @@ namespace ForzaDSX
 
 			if (forzaDSXWorker != null)
 			{
+				CurrentSettings.Save();
+
 				forzaDSXWorker.SetSettings(CurrentSettings);
 
 				StartForzaDSXThread();
@@ -783,6 +783,8 @@ namespace ForzaDSX
 
 			if (forzaDSXWorker != null)
 			{
+				CurrentSettings.Save();
+
 				forzaDSXWorker.SetSettings(CurrentSettings);
 
 				StartForzaDSXThread();
