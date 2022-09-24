@@ -13,13 +13,385 @@ namespace ForzaDSX.Properties {
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.3.0.0")]
-    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
+    public sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
         
         public static Settings Default {
             get {
                 return defaultInstance;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
+        public float _grip_Loss_Val {
+            get {
+                return ((float)(this["_grip_Loss_Val"]));
+            }
+            set {
+                this["_grip_Loss_Val"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.2")]
+        public float _throttle_Grip_Loss_Val {
+            get {
+                return ((float)(this["_throttle_Grip_Loss_Val"]));
+            }
+            set {
+                this["_throttle_Grip_Loss_Val"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("35")]
+        public int _max_Brake_Vibration {
+            get {
+                return ((int)(this["_max_Brake_Vibration"]));
+            }
+            set {
+                this["_max_Brake_Vibration"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int _min_Brake_Vibration {
+            get {
+                return ((int)(this["_min_Brake_Vibration"]));
+            }
+            set {
+                this["_min_Brake_Vibration"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
+        public float _turn_Accel_Mod {
+            get {
+                return ((float)(this["_turn_Accel_Mod"]));
+            }
+            set {
+                this["_turn_Accel_Mod"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.01")]
+        public float _ewma_Alpha_Throttle {
+            get {
+                return ((float)(this["_ewma_Alpha_Throttle"]));
+            }
+            set {
+                this["_ewma_Alpha_Throttle"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public float _ewma_Alpha_Brake {
+            get {
+                return ((float)(this["_ewma_Alpha_Brake"]));
+            }
+            set {
+                this["_ewma_Alpha_Brake"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public float _ewma_Alpha_Brake_Freq {
+            get {
+                return ((float)(this["_ewma_Alpha_Brake_Freq"]));
+            }
+            set {
+                this["_ewma_Alpha_Brake_Freq"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
+        public float _ewma_Alpha_Throttle_Freq {
+            get {
+                return ((float)(this["_ewma_Alpha_Throttle_Freq"]));
+            }
+            set {
+                this["_ewma_Alpha_Throttle_Freq"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public float _forward_Accel_Mod {
+            get {
+                return ((float)(this["_forward_Accel_Mod"]));
+            }
+            set {
+                this["_forward_Accel_Mod"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("35")]
+        public int _max_Accel_Griploss_Vibration {
+            get {
+                return ((int)(this["_max_Accel_Griploss_Vibration"]));
+            }
+            set {
+                this["_max_Accel_Griploss_Vibration"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int _min_Accel_Griploss_Vibration {
+            get {
+                return ((int)(this["_min_Accel_Griploss_Vibration"]));
+            }
+            set {
+                this["_min_Accel_Griploss_Vibration"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        public int _min_Accel_Griploss_Stiffness {
+            get {
+                return ((int)(this["_min_Accel_Griploss_Stiffness"]));
+            }
+            set {
+                this["_min_Accel_Griploss_Stiffness"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("75")]
+        public int _max_Accel_Griploss_Stiffness {
+            get {
+                return ((int)(this["_max_Accel_Griploss_Stiffness"]));
+            }
+            set {
+                this["_max_Accel_Griploss_Stiffness"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        public int _min_Brake_Stiffness {
+            get {
+                return ((int)(this["_min_Brake_Stiffness"]));
+            }
+            set {
+                this["_min_Brake_Stiffness"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int _max_Brake_Stiffness {
+            get {
+                return ((int)(this["_max_Brake_Stiffness"]));
+            }
+            set {
+                this["_max_Brake_Stiffness"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("20")]
+        public int _brake_Vibration_Start {
+            get {
+                return ((int)(this["_brake_Vibration_Start"]));
+            }
+            set {
+                this["_brake_Vibration_Start"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int _brake_Vibration_Mode_Start {
+            get {
+                return ((int)(this["_brake_Vibration_Mode_Start"]));
+            }
+            set {
+                this["_brake_Vibration_Mode_Start"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5")]
+        public int _throttle_Vibration_Mode_Start {
+            get {
+                return ((int)(this["_throttle_Vibration_Mode_Start"]));
+            }
+            set {
+                this["_throttle_Vibration_Mode_Start"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("6")]
+        public int _max_Throttle_Resistance {
+            get {
+                return ((int)(this["_max_Throttle_Resistance"]));
+            }
+            set {
+                this["_max_Throttle_Resistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("6")]
+        public int _max_Brake_Resistance {
+            get {
+                return ((int)(this["_max_Brake_Resistance"]));
+            }
+            set {
+                this["_max_Brake_Resistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int _min_Throttle_Resistance {
+            get {
+                return ((int)(this["_min_Throttle_Resistance"]));
+            }
+            set {
+                this["_min_Throttle_Resistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int _min_Brake_Resistance {
+            get {
+                return ((int)(this["_min_Brake_Resistance"]));
+            }
+            set {
+                this["_min_Brake_Resistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int _acceleration_Limit {
+            get {
+                return ((int)(this["_acceleration_Limit"]));
+            }
+            set {
+                this["_acceleration_Limit"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.9")]
+        public float _rpm_Redline_Ratio {
+            get {
+                return ((float)(this["_rpm_Redline_Ratio"]));
+            }
+            set {
+                this["_rpm_Redline_Ratio"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool _disable_App_Check {
+            get {
+                return ((bool)(this["_disable_App_Check"]));
+            }
+            set {
+                this["_disable_App_Check"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("6969")]
+        public uint _dsx_PORT {
+            get {
+                return ((uint)(this["_dsx_PORT"]));
+            }
+            set {
+                this["_dsx_PORT"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5300")]
+        public uint _forza_PORT {
+            get {
+                return ((uint)(this["_forza_PORT"]));
+            }
+            set {
+                this["_forza_PORT"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public float _left_Trigger_Eeffect_Intensity {
+            get {
+                return ((float)(this["_left_Trigger_Eeffect_Intensity"]));
+            }
+            set {
+                this["_left_Trigger_Eeffect_Intensity"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public float _right_Trigger_Eeffect_Intensity {
+            get {
+                return ((float)(this["_right_Trigger_Eeffect_Intensity"]));
+            }
+            set {
+                this["_right_Trigger_Eeffect_Intensity"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public uint _verbose {
+            get {
+                return ((uint)(this["_verbose"]));
+            }
+            set {
+                this["_verbose"] = value;
             }
         }
     }

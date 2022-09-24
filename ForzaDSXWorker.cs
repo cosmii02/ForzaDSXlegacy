@@ -1,7 +1,4 @@
-﻿using CsvHelper;
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -11,7 +8,53 @@ namespace ForzaDSX
 {
 	public class ForzaDSXWorker
 	{
-		protected UI userInterface;
+		public struct ForzaDSXReportStruct
+		{
+			public enum ReportType : ushort
+			{
+				VERBOSEMESSAGE = 0,
+				NORACE = 1,
+				RACING = 2
+			}
+
+			public enum RacingReportType : ushort
+			{
+				// 0 = Throttle vibration message
+				THROTTLE_VIBRATION = 0,
+				// 1 = Throttle message
+				THROTTLE,
+				// 2 = Brake vibration message
+				BRAKE_VIBRATION,
+				// 3 = Brake message
+				BRAKE
+			}
+
+			public ForzaDSXReportStruct(ReportType type, RacingReportType racingType, string msg)
+			{
+				this.type = type;
+				this.racingType = racingType;
+				this.message = msg;
+			}
+
+			public ForzaDSXReportStruct(ReportType type, string msg)
+			{
+				this.type = type;
+				this.message = msg;
+			}
+
+			public ForzaDSXReportStruct(string msg)
+			{
+				this.type = ReportType.VERBOSEMESSAGE;
+				this.message = String.Empty;
+			}
+
+			public ReportType type = 0;
+			public RacingReportType racingType = 0;
+			public string message = string.Empty;
+		}
+
+		ForzaDSXSettings settings;
+		IProgress<ForzaDSXReportStruct> progressReporter;
 
 		int lastThrottleResistance = 1;
 		int lastThrottleFreq = 0;
@@ -26,8 +69,6 @@ namespace ForzaDSX
 		// FH does not always correctly set IsRaceOn, so we must also check if the RPM info is the same for a certain ammount of time
 		uint LastRPMAccumulator = 0;
 		uint RPMAccumulatorTriggerRaceOff = 200;
-
-		BackgroundWorker currentWorker;
 
 		// Colors for Light Bar while in menus -> using car's PI colors from Forza
 		public static readonly uint CarClassD = 0;
@@ -45,24 +86,31 @@ namespace ForzaDSX
 		public static readonly int[] ColorClassX = { 105, 182, 72 };
 
 
-		public ForzaDSXWorker(UI uiRef)
+		public ForzaDSXWorker(ForzaDSXSettings currentSettings, IProgress<ForzaDSXReportStruct> progressReporter)
 		{
-			userInterface = uiRef;
+			settings = new ForzaDSXSettings();
+			settings.Copy(currentSettings);
+			this.progressReporter = progressReporter;
+		}
+
+		public void SetSettings(ForzaDSXSettings currentSettings)
+		{
+			settings.Copy(currentSettings);
 		}
 
 		//This sends the data to DSX based on the input parsed data from Forza.
 		//See DataPacket.cs for more details about what forza parameters can be accessed.
 		//See the Enums at the bottom of this file for details about commands that can be sent to DualSenseX
 		//Also see the Test Function below to see examples about those commands
-		void SendData(DataPacket data/*, CsvWriter csv*/)
+		void SendData(DataPacket data)
 		{
 			Packet p = new Packet();
 			CsvData csvRecord = new CsvData();
 			//Set the controller to do this for
 			int controllerIndex = 0;
 
-			//Initialize our array of instructions
-			p.instructions = new Instruction[4];
+			////Initialize our array of instructions
+			//p.instructions = new Instruction[3];
 
 			/* Combined variables */
 			int resistance = 0;
@@ -111,19 +159,28 @@ namespace ForzaDSX
 			}
 
 			// Right Trigger (index 2)
-			p.instructions[2].type = InstructionType.TriggerUpdate;
+			//int RightTrigger = 2;
+			Instruction RightTrigger = new Instruction();
+			RightTrigger.type = InstructionType.TriggerUpdate;
+			//p.instructions[RightTrigger].type = InstructionType.TriggerUpdate;
 
 			// Left Trigger
-			p.instructions[0].type = InstructionType.TriggerUpdate;
+			//int LeftTrigger = 1;
+			//p.instructions[LeftTrigger].type = InstructionType.TriggerUpdate;
+			Instruction LeftTrigger = new Instruction();
+			LeftTrigger.type = InstructionType.TriggerUpdate;
 
 			// Light Bar
-			p.instructions[1].type = InstructionType.RGBUpdate;
+			//int LightBar = 0;
+			//p.instructions[LightBar].type = InstructionType.RGBUpdate;
+			Instruction LightBar = new Instruction();
+			LightBar.type = InstructionType.RGBUpdate;
 
 			// No race = normal triggers
 			if (!bInRace)
 			{
-				p.instructions[2].parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.Normal, 0, 0 };
-				p.instructions[0].parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.Normal, 0, 0 };
+				RightTrigger.parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.Normal, 0, 0 };
+				LeftTrigger.parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.Normal, 0, 0 };
 
 				#region Light Bar color
 				int CPIcolorR = 255;
@@ -175,110 +232,144 @@ namespace ForzaDSX
 					CPIcolorB = ColorClassX[2];
 				}
 
-				p.instructions[1].parameters = new object[] { controllerIndex, CPIcolorR, CPIcolorG, CPIcolorB };
+				LightBar.parameters = new object[] { controllerIndex, CPIcolorR, CPIcolorG, CPIcolorB };
 				#endregion
 
-				if (userInterface.CurrentSettings.Verbose)
+				if (settings.Verbose > 0
+					&& progressReporter != null)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"No race going on. Normal Triggers. Car's Class = {currentClass}; CPI = {currentCPI}; CPI Ratio = {cpiRatio}; Color [{CPIcolorR}, {CPIcolorG}, {CPIcolorB}]" });
+					progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.NORACE, $"No race going on. Normal Triggers. Car's Class = {currentClass}; CPI = {currentCPI}; CPI Ratio = {cpiRatio}; Color [{CPIcolorR}, {CPIcolorG}, {CPIcolorB}]" ));
 				}
+
+				p.instructions = new Instruction[] { LightBar, LeftTrigger, RightTrigger };
+
+				//Send the commands to DualSenseX
+				Send(p);
 			}
 			else
 			{
 				#region Right Trigger
 				//Set the updates for the right Trigger(Throttle)
 
-				avgAccel = (float)Math.Sqrt((userInterface.CurrentSettings.TURN_ACCEL_MOD * (data.AccelerationX * data.AccelerationX)) + (userInterface.CurrentSettings.FORWARD_ACCEL_MOD * (data.AccelerationZ * data.AccelerationZ)));
+				avgAccel = (float)Math.Sqrt((settings.TURN_ACCEL_MOD * (data.AccelerationX * data.AccelerationX)) + (settings.FORWARD_ACCEL_MOD * (data.AccelerationZ * data.AccelerationZ)));
 
 				// Define losing grip as front tires slipping or rear tires slipping while accelerating a fair ammount
 				bool bLosingAccelGrip =
-					combinedFrontTireSlip > userInterface.CurrentSettings.THROTTLE_GRIP_LOSS_VAL
-				|| (combinedRearTireSlip > userInterface.CurrentSettings.THROTTLE_GRIP_LOSS_VAL && data.Accelerator > 200);
+					combinedFrontTireSlip > settings.THROTTLE_GRIP_LOSS_VAL
+				|| (combinedRearTireSlip > settings.THROTTLE_GRIP_LOSS_VAL && data.Accelerator > 200);
 
 				// If losing grip, start to "vibrate"
 				if (bLosingAccelGrip)
 				{
-					freq = (int)Math.Floor(Map(combinedTireSlip, userInterface.CurrentSettings.THROTTLE_GRIP_LOSS_VAL, 5, 0, userInterface.CurrentSettings.MAX_ACCEL_GRIPLOSS_VIBRATION));
-					resistance = (int)Math.Floor(Map(avgAccel, 0, userInterface.CurrentSettings.ACCELRATION_LIMIT, userInterface.CurrentSettings.MIN_ACCEL_GRIPLOSS_STIFFNESS, userInterface.CurrentSettings.MAX_ACCEL_GRIPLOSS_STIFFNESS));
-					//resistance = userInterface.CurrentSettings.MIN_ACCEL_GRIPLOSS_STIFFNESS - (int)Math.Floor(Map(data.Accelerator, 0, 255, userInterface.CurrentSettings.MIN_ACCEL_GRIPLOSS_STIFFNESS, userInterface.CurrentSettings.MAX_ACCEL_GRIPLOSS_STIFFNESS));
-					filteredResistance = (int)Math.Floor(EWMA(resistance, lastThrottleResistance, userInterface.CurrentSettings.EWMA_ALPHA_THROTTLE) * userInterface.CurrentSettings.RIGHT_TRIGGER_EFFECT_INTENSITY);
-					filteredFreq = (int)Math.Floor(EWMA(freq, lastThrottleFreq, userInterface.CurrentSettings.EWMA_ALPHA_THROTTLE_FREQ) * userInterface.CurrentSettings.RIGHT_TRIGGER_EFFECT_INTENSITY);
+					freq = (int)Math.Floor(Map(combinedTireSlip, settings.THROTTLE_GRIP_LOSS_VAL, 5, 0, settings.MAX_ACCEL_GRIPLOSS_VIBRATION));
+					resistance = (int)Math.Floor(Map(avgAccel, 0, settings.ACCELERATION_LIMIT, settings.MIN_ACCEL_GRIPLOSS_STIFFNESS, settings.MAX_ACCEL_GRIPLOSS_STIFFNESS));
+					//resistance = settings.MIN_ACCEL_GRIPLOSS_STIFFNESS - (int)Math.Floor(Map(data.Accelerator, 0, 255, settings.MIN_ACCEL_GRIPLOSS_STIFFNESS, settings.MAX_ACCEL_GRIPLOSS_STIFFNESS));
+					filteredResistance = (int)Math.Floor(EWMA(resistance, lastThrottleResistance, settings.EWMA_ALPHA_THROTTLE) * settings.RIGHT_TRIGGER_EFFECT_INTENSITY);
+					filteredFreq = (int)Math.Floor(EWMA(freq, lastThrottleFreq, settings.EWMA_ALPHA_THROTTLE_FREQ) * settings.RIGHT_TRIGGER_EFFECT_INTENSITY);
 
 					lastThrottleResistance = filteredResistance;
 					lastThrottleFreq = filteredFreq;
 
-					if (filteredFreq <= userInterface.CurrentSettings.MIN_ACCEL_GRIPLOSS_VIBRATION
-						|| data.Accelerator <= userInterface.CurrentSettings.THROTTLE_VIBRATION_MODE_START)
+					if (filteredFreq <= settings.MIN_ACCEL_GRIPLOSS_VIBRATION
+						|| data.Accelerator <= settings.THROTTLE_VIBRATION_MODE_START)
 					{
-						p.instructions[2].parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.Resistance, 0, filteredResistance };
+						RightTrigger.parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.Resistance, 0, filteredResistance };
 
 						filteredFreq = 0;
 						filteredResistance = 0;
 					}
 					else
 					{
-						p.instructions[2].parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.CustomTriggerValue, CustomTriggerValueMode.VibrateResistance, filteredFreq, filteredResistance, userInterface.CurrentSettings.THROTTLE_VIBRATION_MODE_START, 0, 0, 0, 0 };
+						RightTrigger.parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.CustomTriggerValue, CustomTriggerValueMode.VibrateResistance, filteredFreq, filteredResistance, settings.THROTTLE_VIBRATION_MODE_START, 0, 0, 0, 0 };
 					}
-					if (userInterface.CurrentSettings.Verbose)
+					if (settings.Verbose > 0
+						&& progressReporter != null)
 					{
-						currentWorker.ReportProgress(0, new object[] { 0, $"Setting Throttle to vibration mode with freq: {filteredFreq}, Resistance: {filteredResistance}" });
+						progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.RACING, ForzaDSXReportStruct.RacingReportType.THROTTLE_VIBRATION, $"Setting Throttle to vibration mode with freq: {filteredFreq}, Resistance: {filteredResistance}" ));
 					}
 				}
 				else
 				{
 					//It should probably always be uniformly stiff
-					resistance = (int)Math.Floor(Map(avgAccel, 0, userInterface.CurrentSettings.ACCELRATION_LIMIT, userInterface.CurrentSettings.MIN_THROTTLE_RESISTANCE, userInterface.CurrentSettings.MAX_THROTTLE_RESISTANCE));
-					filteredResistance = (int)Math.Floor(EWMA(resistance, lastThrottleResistance, userInterface.CurrentSettings.EWMA_ALPHA_THROTTLE) * userInterface.CurrentSettings.RIGHT_TRIGGER_EFFECT_INTENSITY);
+					resistance = (int)Math.Floor(Map(avgAccel, 0, settings.ACCELERATION_LIMIT, settings.MIN_THROTTLE_RESISTANCE, settings.MAX_THROTTLE_RESISTANCE));
+					filteredResistance = (int)Math.Floor(EWMA(resistance, lastThrottleResistance, settings.EWMA_ALPHA_THROTTLE) * settings.RIGHT_TRIGGER_EFFECT_INTENSITY);
 
 					lastThrottleResistance = filteredResistance;
-					p.instructions[2].parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.Resistance, 0, filteredResistance };
+					RightTrigger.parameters = new object[] { controllerIndex, Trigger.Right, TriggerMode.Resistance, 0, filteredResistance };
+
+					if (settings.Verbose > 0
+						&& progressReporter != null)
+					{
+						progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.RACING, ForzaDSXReportStruct.RacingReportType.THROTTLE_VIBRATION, String.Empty));
+					}
 				}
 
-				if (userInterface.CurrentSettings.Verbose)
+				if (settings.Verbose > 0
+					&& progressReporter != null)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Average Acceleration: {avgAccel}; Throttle Resistance: {filteredResistance}; Accelerator: {data.Accelerator}" });
+					progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.RACING, ForzaDSXReportStruct.RacingReportType.THROTTLE, $"Average Acceleration: {avgAccel}; Throttle Resistance: {filteredResistance}; Accelerator: {data.Accelerator}" ));
 				}
 
+				p.instructions = new Instruction[] { RightTrigger };
+
+				//Send the commands to DualSenseX
+				Send(p);
 				#endregion
 				#region Left Trigger
 				//Update the left(Brake) trigger
 
-				if (combinedTireSlip < userInterface.CurrentSettings.GRIP_LOSS_VAL && data.Brake < userInterface.CurrentSettings.BRAKE_VIBRATION__MODE_START)
+				if (combinedTireSlip < settings.GRIP_LOSS_VAL 
+					&& data.Brake < settings.BRAKE_VIBRATION__MODE_START)
 				{
-					freq = userInterface.CurrentSettings.MAX_BRAKE_VIBRATION - (int)Math.Floor(Map(combinedTireSlip, userInterface.CurrentSettings.GRIP_LOSS_VAL, 1, 0, userInterface.CurrentSettings.MAX_BRAKE_VIBRATION));
-					resistance = userInterface.CurrentSettings.MIN_BRAKE_STIFFNESS - (int)Math.Floor(Map(data.Brake, 0, 255, userInterface.CurrentSettings.MAX_BRAKE_STIFFNESS, userInterface.CurrentSettings.MIN_BRAKE_STIFFNESS));
-					filteredResistance = (int)Math.Floor(EWMA(resistance, lastBrakeResistance, userInterface.CurrentSettings.EWMA_ALPHA_BRAKE) * userInterface.CurrentSettings.LEFT_TRIGGER_EFFECT_INTENSITY);
-					filteredFreq = (int)Math.Floor(EWMA(freq, lastBrakeFreq, userInterface.CurrentSettings.EWMA_ALPHA_BRAKE_FREQ) * userInterface.CurrentSettings.LEFT_TRIGGER_EFFECT_INTENSITY);
+					freq = settings.MAX_BRAKE_VIBRATION - (int)Math.Floor(Map(combinedTireSlip, settings.GRIP_LOSS_VAL, 1, 0, settings.MAX_BRAKE_VIBRATION));
+					resistance = settings.MIN_BRAKE_STIFFNESS - (int)Math.Floor(Map(data.Brake, 0, 255, settings.MAX_BRAKE_STIFFNESS, settings.MIN_BRAKE_STIFFNESS));
+					filteredResistance = (int)Math.Floor(EWMA(resistance, lastBrakeResistance, settings.EWMA_ALPHA_BRAKE) * settings.LEFT_TRIGGER_EFFECT_INTENSITY);
+					filteredFreq = (int)Math.Floor(EWMA(freq, lastBrakeFreq, settings.EWMA_ALPHA_BRAKE_FREQ) * settings.LEFT_TRIGGER_EFFECT_INTENSITY);
 					lastBrakeFreq = filteredFreq;
 					lastBrakeResistance = filteredResistance;
-					if (filteredFreq <= userInterface.CurrentSettings.MIN_BRAKE_VIBRATION)
+					if (filteredFreq <= settings.MIN_BRAKE_VIBRATION)
 					{
-						p.instructions[0].parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.Resistance, 0, 0 };
+						LeftTrigger.parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.Resistance, 0, 0 };
 
 					}
 					else
 					{
-						p.instructions[0].parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.CustomTriggerValue, CustomTriggerValueMode.VibrateResistance, filteredFreq, filteredResistance, userInterface.CurrentSettings.BRAKE_VIBRATION_START, 0, 0, 0, 0 };
+						LeftTrigger.parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.CustomTriggerValue, CustomTriggerValueMode.VibrateResistance, filteredFreq, filteredResistance, settings.BRAKE_VIBRATION_START, 0, 0, 0, 0 };
 
 					}
 					//Set left trigger to the custom mode VibrateResitance with values of Frequency = freq, Stiffness = 104, startPostion = 76. 
-					if (userInterface.CurrentSettings.Verbose)
+					if (settings.Verbose > 0
+						&& progressReporter != null)
 					{
-						currentWorker.ReportProgress(0, new object[] { 0, $"Setting Brake to vibration mode with freq: {filteredFreq}, Resistance: {filteredResistance}" });
+						progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.RACING, ForzaDSXReportStruct.RacingReportType.BRAKE_VIBRATION, $"Setting Brake to vibration mode with freq: {filteredFreq}, Resistance: {filteredResistance}" ));
 					}
 				}
 				else
 				{
 					//By default, Increasingly resistant to force
-					resistance = (int)Math.Floor(Map(data.Brake, 0, 255, userInterface.CurrentSettings.MIN_BRAKE_RESISTANCE, userInterface.CurrentSettings.MAX_BRAKE_RESISTANCE));
-					filteredResistance = (int)Math.Floor(EWMA(resistance, lastBrakeResistance, userInterface.CurrentSettings.EWMA_ALPHA_BRAKE) * userInterface.CurrentSettings.LEFT_TRIGGER_EFFECT_INTENSITY);
+					resistance = (int)Math.Floor(Map(data.Brake, 0, 255, settings.MIN_BRAKE_RESISTANCE, settings.MAX_BRAKE_RESISTANCE));
+					filteredResistance = (int)Math.Floor(EWMA(resistance, lastBrakeResistance, settings.EWMA_ALPHA_BRAKE) * settings.LEFT_TRIGGER_EFFECT_INTENSITY);
 					lastBrakeResistance = filteredResistance;
-					p.instructions[0].parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.Resistance, 0, filteredResistance };
+
+					LeftTrigger.parameters = new object[] { controllerIndex, Trigger.Left, TriggerMode.Resistance, 0, filteredResistance };
+
+					if (settings.Verbose > 0
+						&& progressReporter != null)
+					{
+						progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.RACING, ForzaDSXReportStruct.RacingReportType.BRAKE_VIBRATION, String.Empty ));
+					}
 				}
-				if (userInterface.CurrentSettings.Verbose)
+
+				if (settings.Verbose > 0
+					&& progressReporter != null)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Brake: {data.Brake}; Brake Resistance: {filteredResistance}; Tire Slip: {combinedTireSlip}" });
+					progressReporter.Report(new ForzaDSXReportStruct(ForzaDSXReportStruct.ReportType.RACING, ForzaDSXReportStruct.RacingReportType.BRAKE, $"Brake: {data.Brake}; Brake Resistance: {filteredResistance}; Tire Slip: {combinedTireSlip}" ));
 				}
+
+				p.instructions = new Instruction[] { LeftTrigger};
+
+				//Send the commands to DualSenseX
+				Send(p);
 				#endregion
 
 				#region Light Bar
@@ -288,23 +379,26 @@ namespace ForzaDSX
 				float CurrentRPMRatio = (currentRPM - data.EngineIdleRpm) / engineRange;
 				int GreenChannel = Math.Max((int)Math.Floor(CurrentRPMRatio * 255), 50);
 				int RedChannel = (int)Math.Floor(CurrentRPMRatio * 255);
-				if (CurrentRPMRatio >= userInterface.CurrentSettings.RPM_REDLINE_RATIO)
+				if (CurrentRPMRatio >= settings.RPM_REDLINE_RATIO)
 				{
 					// Remove Green
 					GreenChannel = 255 - GreenChannel;
 				}
 
-				p.instructions[1].parameters = new object[] { controllerIndex, RedChannel, GreenChannel, 0 };
+				LightBar.parameters = new object[] { controllerIndex, RedChannel, GreenChannel, 0 };
 
-				if (userInterface.CurrentSettings.Verbose)
+				if (settings.Verbose > 1
+					&& progressReporter != null)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Engine RPM: {data.CurrentEngineRpm}; Engine Max RPM: {data.EngineMaxRpm}; Engine Idle RPM: {data.EngineIdleRpm}" });
+					progressReporter.Report(new ForzaDSXReportStruct($"Engine RPM: {data.CurrentEngineRpm}; Engine Max RPM: {data.EngineMaxRpm}; Engine Idle RPM: {data.EngineIdleRpm}"));
 				}
+
+				p.instructions = new Instruction[] { LightBar };
+
+				//Send the commands to DualSenseX
+				Send(p);
 				#endregion
 			}
-
-			//Send the commands to DualSenseX
-			Send(p);
 		}
 
 		//Maps floats from one range to another.
@@ -321,7 +415,7 @@ namespace ForzaDSX
 			return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 		}
 
-		private DataPacket data;
+		//private DataPacket data;
 		static UdpClient senderClient;
 		static IPEndPoint endPoint;
 
@@ -330,8 +424,13 @@ namespace ForzaDSX
 		{
 			senderClient = new UdpClient();
 			var portNumber = File.ReadAllText(@"C:\Temp\DualSenseX\DualSenseX_PortNumber.txt");
-			currentWorker.ReportProgress(0, new object[] { 0, "DSX is using port " + portNumber + ". Attempting to connect.." });
-			int portNum = userInterface.CurrentSettings.DSX_PORT;
+			
+			if (progressReporter != null)
+			{
+				progressReporter.Report(new ForzaDSXReportStruct("DSX is using port " + portNumber + ". Attempting to connect.." ));
+			}
+
+			int portNum = settings.DSX_PORT;
 			if (portNumber != null)
 			{
 				try
@@ -340,13 +439,19 @@ namespace ForzaDSX
 				}
 				catch (FormatException e)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"DSX provided a non numerical Port! Using configured default({userInterface.CurrentSettings.DSX_PORT})." });
-					portNum = userInterface.CurrentSettings.DSX_PORT;
+					if (progressReporter != null)
+					{
+						progressReporter.Report(new ForzaDSXReportStruct($"DSX provided a non numerical Port! Using configured default({settings.DSX_PORT})." ));
+					}
+					portNum = settings.DSX_PORT;
 				}
 			}
 			else
 			{
-				currentWorker.ReportProgress(0, new object[] { 0, $"DSX did not provided a port value. Using configured default({userInterface.CurrentSettings.DSX_PORT})" });
+				if (progressReporter != null)
+				{
+					progressReporter.Report(new ForzaDSXReportStruct($"DSX did not provided a port value. Using configured default({settings.DSX_PORT})" ));
+				}
 			}
 
 			endPoint = new IPEndPoint(Triggers.localhost, Convert.ToInt32(portNumber));
@@ -356,66 +461,77 @@ namespace ForzaDSX
 			}
 			catch (Exception e)
 			{
-				currentWorker.ReportProgress(0, new object[] { 0, "Error Connecting: " });
+				if (progressReporter != null)
+				{
+					progressReporter.Report(new ForzaDSXReportStruct("Error Connecting: "));
 
-				if (e is SocketException)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Couldn't Access Port. " + e.Message });
+					if (e is SocketException)
+					{
+						progressReporter.Report(new ForzaDSXReportStruct("Couldn't Access Port. " + e.Message ));
+					}
+					else if (e is ObjectDisposedException)
+					{
+						progressReporter.Report(new ForzaDSXReportStruct("Connection Object Closed. Restart the Application." ));
+					}
+					else
+					{
+						progressReporter.Report(new ForzaDSXReportStruct("Unknown Error: " + e.Message));
+					}
 				}
-				else if (e is ObjectDisposedException)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Connection Object Closed. Restart the Application." });
-				}
-				else
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Unknown Error: " + e.Message });
-				}
-				throw e;
 			}
 		}
 
 		//Send Data to DualSenseX
 		void Send(Packet data)
 		{
-			if (userInterface.CurrentSettings.Verbose)
+			if (settings.Verbose > 1
+				&& progressReporter != null)
 			{
-				currentWorker.ReportProgress(0, new object[] { 0, $"Converting Message to JSON" });
+				progressReporter.Report(new ForzaDSXReportStruct($"Converting Message to JSON" ));
 			}
 			byte[] RequestData = Encoding.ASCII.GetBytes(Triggers.PacketToJson(data));
-			if (userInterface.CurrentSettings.Verbose)
+			if (settings.Verbose > 1
+				&& progressReporter != null)
 			{
-				currentWorker.ReportProgress(0, new object[] { 0, $"{Encoding.ASCII.GetString(RequestData)}" });
+				progressReporter.Report(new ForzaDSXReportStruct($"{Encoding.ASCII.GetString(RequestData)}" ));
 			}
 			try
 			{
-				if (userInterface.CurrentSettings.Verbose)
+				if (settings.Verbose > 1
+					&& progressReporter != null)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Sending Message to DSX..." });
+					progressReporter.Report(new ForzaDSXReportStruct($"Sending Message to DSX..." ));
 				}
+
 				senderClient.Send(RequestData, RequestData.Length);
-				if (userInterface.CurrentSettings.Verbose)
+
+				if (settings.Verbose > 1
+					&& progressReporter != null)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Message sent to DSX" });
+					progressReporter.Report(new ForzaDSXReportStruct($"Message sent to DSX" ));
 				}
 			}
 			catch (Exception e)
 			{
-				currentWorker.ReportProgress(0, new object[] { 0, "Error Sending Message: " });
+				if (progressReporter != null)
+					progressReporter.Report(new ForzaDSXReportStruct("Error Sending Message: " ));
 
 				if (e is SocketException)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Couldn't Access Port. " + e.Message });
+					if (progressReporter != null)
+						progressReporter.Report(new ForzaDSXReportStruct("Couldn't Access Port. " + e.Message ));
 					throw e;
 				}
 				else if (e is ObjectDisposedException)
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Connection closed. Restarting..." });
+					if (progressReporter != null)
+						progressReporter.Report(new ForzaDSXReportStruct("Connection closed. Restarting..."));
 					Connect();
 				}
 				else
 				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Unknown Error: " + e.Message });
-
+					if (progressReporter != null)
+						progressReporter.Report(new ForzaDSXReportStruct("Unknown Error: " + e.Message));
 				}
 
 			}
@@ -423,93 +539,7 @@ namespace ForzaDSX
 
 		static IPEndPoint ipEndPoint = null;
 		static UdpClient client = null;
-		StreamWriter writer = null;
-		CsvWriter csv = null;
-
-		public int ConnectToProcesses(BackgroundWorker worker)
-		{
-			currentWorker = worker;
-			try
-			{
-				if (!userInterface.CurrentSettings.DISABLE_APP_CHECK)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, "Connecting to Forza and DSX" });
-
-					int forzaProcesses = Process.GetProcessesByName("ForzaHorizon 5").Length;
-					forzaProcesses += Process.GetProcessesByName("ForzaHorizon4").Length;
-					forzaProcesses += Process.GetProcessesByName("ForzaMotorsport7").Length;
-					Process[] DSX = Process.GetProcessesByName("DSX");
-					Process[] DSX_2 = Process.GetProcessesByName("DualsenseX");
-					Process[] cur = Process.GetProcesses();
-					while (forzaProcesses == 0 || DSX.Length + DSX_2.Length == 0)
-					{
-						currentWorker.ReportProgress(0, new object[] { 1, (DSX.Length + DSX_2.Length) > 0 });
-						currentWorker.ReportProgress(0, new object[] { 2, forzaProcesses > 0 });
-						
-						System.Threading.Thread.Sleep(1000);
-						forzaProcesses += Process.GetProcessesByName("ForzaHorizon5").Length;
-						forzaProcesses += Process.GetProcessesByName("ForzaHorizon4").Length; //Guess at name
-						forzaProcesses += Process.GetProcessesByName("ForzaMotorsport7").Length; //Guess at name
-																								 // DSX = "DSX" or "DualSenseX"
-						DSX = Process.GetProcessesByName("DSX");
-						DSX_2 = Process.GetProcessesByName("DualsenseX");
-					}
-					
-					currentWorker.ReportProgress(0, new object[] { 0, "Forza and DSX are running. Let's Go! Version: " + Program.VERSION });
-
-					currentWorker.ReportProgress(0, new object[] { 1, true });
-					currentWorker.ReportProgress(0, new object[] { 2, true });
-				}
-
-				//Connect to DualSenseX
-				Connect();
-
-				//Connect to Forza
-				ipEndPoint = new IPEndPoint(IPAddress.Loopback, userInterface.CurrentSettings.FORZA_PORT);
-				client = new UdpClient(userInterface.CurrentSettings.FORZA_PORT);
-
-				currentWorker.ReportProgress(0, new object[] { 0, $"The Program is running. Please set the Forza data out to 127.0.0.1, port {userInterface.CurrentSettings.FORZA_PORT} and verify the DualSenseX UDP Port is set to {userInterface.CurrentSettings.DSX_PORT}" });
-			}
-			catch (Exception e)
-			{
-				currentWorker.ReportProgress(0, new object[] { 0, "Application encountered an exception: " + e.Message });
-
-				if (userInterface.CurrentSettings.Verbose)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Cleaning Up" });
-				}
-				if (client != null)
-				{
-					client.Close();
-					client.Dispose();
-				}
-				if (senderClient != null)
-				{
-					senderClient.Close();
-					senderClient.Dispose();
-				}
-				if (csv != null)
-				{
-					csv.Dispose();
-				}
-				if (writer != null)
-				{
-					writer.Flush();
-					writer.Close();
-
-				}
-
-				if (userInterface.CurrentSettings.Verbose)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Cleanup Finished. Exiting..." });
-				}
-
-				throw e;
-			}
-			return 0;
-
-		}
-
+		
 		public struct UdpState
 		{
 			public UdpClient u;
@@ -522,22 +552,35 @@ namespace ForzaDSX
 			}
 		}
 
-		public int Run(BackgroundWorker worker)
+		protected bool bRunning = false;
+
+		public void Run()
 		{
-			currentWorker = worker;
+			bRunning = true;
 			try
 			{
-				UdpReceiveResult receive;
+				Connect();
+
+				//Connect to Forza
+				ipEndPoint = new IPEndPoint(IPAddress.Loopback, settings.FORZA_PORT);
+				client = new UdpClient(settings.FORZA_PORT);
+
+				DataPacket data;
+				byte[] resultBuffer;
+				//UdpReceiveResult receive;
 
 				//Main loop, go until killed
-				while (true)
+				while (bRunning)
 				{
 					//If Forza sends an update
-					var resultBuffer = client.Receive(ref ipEndPoint);
+					resultBuffer = client.Receive(ref ipEndPoint);
+					if (resultBuffer == null)
+						continue;
 					//receive = await client.ReceiveAsync();
-					if (userInterface.CurrentSettings.Verbose)
+					if (settings.Verbose > 1
+						&& progressReporter != null)
 					{
-						currentWorker.ReportProgress(0, new object[] { 0, "recieved Message from Forza!" });
+						progressReporter.Report(new ForzaDSXReportStruct("recieved Message from Forza!"));
 					}
 					//parse data
 					//var resultBuffer = receive.Buffer;
@@ -545,56 +588,55 @@ namespace ForzaDSX
 					{
 						//  return;
 					}
-					data = null;
 					data = ParseData(resultBuffer);
-					if (userInterface.CurrentSettings.Verbose)
+					if (settings.Verbose > 1
+						&& progressReporter != null)
 					{
-						currentWorker.ReportProgress(0, new object[] { 0, "Data Parsed" });
+						progressReporter.Report(new ForzaDSXReportStruct("Data Parsed"));
 					}
 
 					//Process and send data to DualSenseX
-					SendData(data/*, csv*/);
+					SendData(data);
 				}
 			}
 			catch (Exception e)
 			{
-				currentWorker.ReportProgress(0, new object[] { 0, "Application encountered an exception: " + e.Message });
-				throw e;
+				if (progressReporter != null)
+				{
+					progressReporter.Report(new ForzaDSXReportStruct("Application encountered an exception: " + e.Message));
+				}
 			}
 			finally
 			{
-				if (userInterface.CurrentSettings.Verbose)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Cleaning Up" });
-				}
-				if (client != null)
-				{
-					client.Close();
-					client.Dispose();
-				}
-				if (senderClient != null)
-				{
-					senderClient.Close();
-					senderClient.Dispose();
-				}
-				if (csv != null)
-				{
-					csv.Dispose();
-				}
-				if (writer != null)
-				{
-					writer.Flush();
-					writer.Close();
-
-				}
-
-				if (userInterface.CurrentSettings.Verbose)
-				{
-					currentWorker.ReportProgress(0, new object[] { 0, $"Cleanup Finished. Exiting..." });
-				}
-
+				Stop();
 			}
-			return 0;
+		}
+
+		public void Stop()
+		{
+			bRunning = false;
+
+			if (settings.Verbose > 0
+					&& progressReporter != null)
+			{
+				progressReporter.Report(new ForzaDSXReportStruct($"Cleaning Up"));
+			}
+
+			if (client != null)
+			{
+				client.Close();
+				client.Dispose();
+			}
+			if (senderClient != null)
+			{
+				senderClient.Close();
+				senderClient.Dispose();
+			}
+
+			if (settings.Verbose > 0)
+			{
+				progressReporter.Report(new ForzaDSXReportStruct($"Cleanup Finished. Exiting..."));
+			}
 		}
 
 		static float EWMA(float input, float last, float alpha)
